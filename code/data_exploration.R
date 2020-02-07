@@ -60,4 +60,36 @@ data %>% gather(station, val, -time) %>%
   summarise(mean = mean(val, na.rm = T)) %>%
   ggplot(aes(x=1:53, y = mean)) + geom_line() + 
   geom_line(aes(y=exp(result_gamma$summary.random$week$mean+result_gamma$summary.fixed$mean)), col = 'red')
-  
+
+
+for(i in 1:12){
+print(data %>%
+  gather(ID, prcp, -time) %>%
+  filter(prcp > 0, month(time) == i) %>%
+  mutate(year= year(time)) %>%
+  group_by(ID, year) %>%
+  summarise(max = max(prcp)) %>%
+  group_by(ID) %>%
+  summarise(m = mean(max)) %>%
+  full_join(.,station_info) %>%
+  filter(!is.na(m)) %>%
+  ggplot(aes(x = X, y = Y, col = m)) + geom_point())
+}
+
+data %>% gather(ID, prcp, -time) %>%
+  filter(prcp>0) %>%
+  group_by(ID) %>%
+  summarise(q = quantile(prcp, 0.95), m = median(prcp)) %>%
+  full_join(.,station_info) %>%
+  ggplot(aes(x=masl, y = q)) + geom_point(col = 'blue') + geom_point(aes(y = m), col = 'red')
+
+
+
+
+
+
+
+
+
+
+

@@ -23,6 +23,12 @@ read_raw_data = function() {
   raw_data
 }
 
+read_data = function(){
+  raw_data = read_raw_data()
+  data = remove_bad_data(raw_data)
+  data
+}
+
 read_station_information = function(data) {
   station_info = read_csv(file = 'data/stations.csv', 
                           col_types = 'ccdcccddTTcc')
@@ -40,3 +46,33 @@ latlon_to_laea = function(coord){
   coord_1 = spTransform(latlon, CRSobj = proj_laea)
   coord_1
 }
+
+get_locations = function(data = NULL, station_info = NULL){
+  if(is.null(station_info)){
+    if(is.null(data)){
+      data = read_data()
+    }
+    station_info = read_station_information(data)
+  }
+  locations = latlon_to_laea(station_info[c('X', 'Y')])@coords
+}
+
+update_data = function(gamma = FALSE, binom = FALSE, gp = FALSE){
+  if(gamma){
+    load('files/result_gamma_temp')
+    save(result_gamma, file = 'files/result_gamma')
+  }
+  if(binom){
+    load('files/result_binom_temp')
+    save(result_binom, file = 'files/result_binom')
+  }
+  if(gp){
+    load('files/result_gp_temp')
+    save(result_gp, file = 'files/result_gp')
+  }
+}
+
+
+
+
+

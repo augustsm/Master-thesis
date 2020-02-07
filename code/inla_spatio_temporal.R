@@ -18,47 +18,52 @@ station_info[c('X', 'Y')] = NULL
 # set station index
 station_info$index = 1:(dim(station_info)[1])
 
-# choose years to fit model for
-years = c(2014)
-
-for(i in years){
-
 # prepare data for fit
 gamma_data =  data %>% gather(ID, prcp, -time) %>%
   filter(!is.na(prcp), prcp > 0) %>%
   full_join(.,station_info) %>%
-  filter(year(time)==i) %>%
-  mutate(week = floor(yday(time)/7))
+  mutate(week_rw = floor(yday(time)/7)) %>%
+  mutate(week_iid = week_rw)
 
 gamma_data[c('time', 'ID', 'masl')] = NULL
 
+# define data for which predictions are needed
+n_weeks = 53
+n_stations = max(unique(gamma_data$index))
+
+pred_data = data.frame('prcp' = rep(NA, n_weeks*n_stations),
+                       'week_rw' = rep(0:(n_weeks-1), n_stations),
+                       'week_iid' = rep(0:(n_weeks-1), n_stations),
+                       'index' = rep(1:n_stations, each = n_weeks))
+# 
+# gamma_data = rbind(gamma_data, pred_data)
+
 # define priors
-sdRef = 0.001
+sdRef = 0.5
 sdRefProb = 0.1
 hyper_rw_prec = list(prec = list(prior = 'pc.prec', param = c(sdRef, sdRefProb)))
 
 hyper_matern = list(range = list(prior = 'pc.range', param = c(40000, 0.1)))
 
 # define formula object
-form = prcp ~ f(week, model = 'rw2', hyper = hyper_rw_prec, cyclic = T, scale.model = T, constr = T)+
+form = prcp ~ f(week_rw, model = 'rw2', hyper = hyper_rw_prec, cyclic = T, scale.model = T, constr = T) +
+  f(week_iid, model = 'iid', constr = T) +
   f(index, model = 'dmatern', locations = locations, hyper = hyper_matern, constr = T)
 
 # fit gamma stage
-cat('Fit gamma stage for', i, '\n')
+cat('Fit gamma stage \n')
 result_gamma = inla(formula = form,
                     family = 'gamma',
                     data = as.data.frame(gamma_data),
                     control.family = list(hyper = list(prec = list(prior = 'loggamma', 
                                                                    param = c(1, 0.01)))),
-                    num.threads = 10,
+                    num.threads = 15,
                     control.compute=list(openmp.strategy="pardiso.parallel"),
+                    control.fixed = list(prec.intercept = 1),
+                    control.predictor = list(compute = T, link = 1),
                     verbose = T)
 
-# plot results
-plot(result_gamma)
 
-print(ggplot(data = as.data.frame(locations), aes(x=X, y=Y)) +
-  geom_point(aes(col=result_gamma$summary.random$index$mean)) +
-  labs(col = 'Spatial effect') +
-  ggtitle(as.character(i)))
-}
+save(result_gamma, file = 'files/result_gamma_temp')
+
+
