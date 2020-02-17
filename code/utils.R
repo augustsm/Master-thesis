@@ -1,5 +1,6 @@
 library(lubridate)
 library(sp)
+library(tidyverse)
 
 remove_bad_data = function(data){
   time = data$time
@@ -34,6 +35,7 @@ read_station_information = function(data) {
                           col_types = 'ccdcccddTTcc')
   station_info = station_info[(station_info$ID %in% colnames(data)),]
   station_info = station_info[c('ID', 'masl', 'X', 'Y')]
+  station_info$index = 1:(dim(station_info)[1])
   station_info
 }
 
@@ -55,6 +57,10 @@ get_locations = function(data = NULL, station_info = NULL){
     station_info = read_station_information(data)
   }
   locations = latlon_to_laea(station_info[c('X', 'Y')])@coords
+}
+
+station_to_index = function(station, station_info) {
+  index = station_info$index[station_info$ID == station]
 }
 
 update_data = function(gamma = FALSE, binom = FALSE, gp = FALSE){

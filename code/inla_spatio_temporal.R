@@ -16,7 +16,7 @@ locations = latlon_to_laea(as.matrix(locations))@coords
 station_info[c('X', 'Y')] = NULL
 
 # set station index
-station_info$index = 1:(dim(station_info)[1])
+
 
 # prepare data for fit
 gamma_data =  data %>% gather(ID, prcp, -time) %>%
@@ -65,5 +65,6 @@ result_gamma = inla(formula = form,
 
 
 save(result_gamma, file = 'files/result_gamma_temp')
+save(gamma_data, file = 'files/gamma_data')
 
 
