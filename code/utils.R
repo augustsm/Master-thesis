@@ -57,6 +57,10 @@ get_locations = function(data = NULL, station_info = NULL){
     station_info = read_station_information(data)
   }
   locations = latlon_to_laea(station_info[c('X', 'Y')])@coords
+  locations = locations/1000
+  locations[,1] = locations[,1]-min(locations[,1])
+  locations[,2] = locations[,2]-min(locations[,2])
+  locations
 }
 
 station_to_index = function(station, station_info) {
