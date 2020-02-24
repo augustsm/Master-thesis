@@ -23,25 +23,20 @@ gamma_data =  data %>% gather(ID, prcp, -time) %>%
 
 gamma_data[c('time', 'ID', 'masl')] = NULL
 
-# define data for which predictions are needed
+# define linear combinations for which to compute marginals
 n_weeks = 53
 n_stations = max(unique(gamma_data$index))
 
-pred_data = data.frame('prcp' = rep(NA, n_weeks*n_stations),
-                       'week_rw' = rep(0:(n_weeks-1), n_stations),
-                       'week_iid' = rep(0:(n_weeks-1), n_stations),
-                       'index' = rep(1:n_stations, each = n_weeks))
-# 
-# gamma_data = rbind(gamma_data, pred_data)
+lin_combs = get_linear_combinations(n_weeks, n_stations)
 
 # define priors
 sdRef = 0.5
 sdRefProb = 0.1
-hyper_rw_prec = list(prec = list(prior = 'pc.prec', param = c(sdRef, sdRefProb), initial = 3.9))
-hyper_iid_prec = list(prec = list(prior = 'pc.prec', param = c(0.01,0.1), initial = 4.4))
+hyper_rw_prec = list(prec = list(prior = 'pc.prec', param = c(sdRef, sdRefProb), initial = 3.1))
+hyper_iid_prec = list(prec = list(prior = 'pc.prec', param = c(0.5,0.1), initial = 4.7))
 
-hyper_matern = list(range = list(prior = 'pc.range', param = c(40, 0.1), initial = 4.3),
-                    prec = list(prior = 'pc.prec', param = c(0.01, 0.1), initial = 2.7))
+hyper_matern = list(range = list(prior = 'pc.range', param = c(100, 0.1), initial = 1.6),
+                    prec = list(prior = 'pc.prec', param = c(0.5, 0.1), initial = 3.1))
 
 # define formula object
 form = prcp ~ f(week_rw, model = 'rw2', hyper = hyper_rw_prec, cyclic = T, scale.model = T, constr = T) +
@@ -59,7 +54,7 @@ result_gamma = inla(formula = form,
                     num.threads = 20,
                     control.compute=list(openmp.strategy="pardiso.parallel"),
                     control.fixed = list(prec.intercept = 1),
-                    #control.predictor = list(compute = T, link = 1),
+                    lincomb = lin_combs, 
                     verbose = T)
 
 

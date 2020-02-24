@@ -1,6 +1,7 @@
 library(lubridate)
 library(sp)
 library(tidyverse)
+library(INLA)
 
 remove_bad_data = function(data){
   time = data$time
@@ -67,6 +68,41 @@ station_to_index = function(station, station_info) {
   index = station_info$index[station_info$ID == station]
 }
 
+get_linear_combinations = function(n_weeks, n_stations){
+  lin_combs = vector(length = n_stations*n_weeks)
+  for(i in 1:n_stations){
+    stat_vec = rep(NA, n_stations)
+    stat_vec[i] = 1
+    for(j in 1:n_weeks){
+      week_vec = rep(NA, n_weeks)
+      week_vec[j] = 1
+      lin = inla.make.lincomb('(Intercept)' = 1, 'week_rw' = week_vec, 'index' = stat_vec)
+      names(lin) = paste(c('lc', as.character((i-1)*n_weeks + j)), collapse = '')
+      lin_combs[(i-1)*n_weeks + j] = lin
+    }
+  }
+  
+  lin_combs
+}
+
+extract_linear_combinations = function(result, n_weeks = 53, station = NULL, station_info = NULL){
+  if(is.null(station)){
+    mean = result$summary.lincomb.derived$mean
+    lower = result$summary.lincomb.derived$`0.025quant`
+    upper = result$summary.lincomb.derived$`0.975quant`
+  }
+  else{
+    if(is.null(station_info)){
+      stop('Station info not passed as input.')
+    }
+    index = station_to_index(station, station_info)
+    mean = result$summary.lincomb.derived$mean[((index-1)*n_weeks + 1):(index*n_weeks)]
+    lower = result$summary.lincomb.derived$`0.025quant`[((index-1)*n_weeks + 1):(index*n_weeks)]
+    upper = result$summary.lincomb.derived$`0.975quant`[((index-1)*n_weeks + 1):(index*n_weeks)]
+  }
+  list(mean = mean, lower = lower, upper = upper)
+}
+
 update_data = function(gamma = FALSE, binom = FALSE, gp = FALSE){
   if(gamma){
     load('files/result_gamma_temp')
@@ -82,7 +118,12 @@ update_data = function(gamma = FALSE, binom = FALSE, gp = FALSE){
   }
 }
 
+qgamma_mean_prec = function(p, x, prec){
+  qgamma(p, shape = x^2*prec, scale = 1/(prec*x))
+}
 
-
+logit = function(x){
+  1/(1+exp(-x))
+}
 
 

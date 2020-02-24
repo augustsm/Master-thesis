@@ -10,7 +10,7 @@ locations = get_locations(station_info = station_info)
 nstat = max(station_info$index)
 nweek = 53
 
-temp = FALSE
+temp = TRUE
 if(temp){
   load('files/result_gamma_temp')
 } else {
@@ -23,39 +23,42 @@ p = 0.89
 
 gamma_prec = result_gamma$summary.hyperpar$mean[1]
 
-gamma_log_mean = result_gamma$summary.linear.predictor$mean
-fitted_means = exp(gamma_log_mean)
+gamma_log_mean = result_gamma$summary.lincomb.derived$mean
 
-gamma_data$gamma_log_mean = gamma_log_mean
-gamma_data$u = qgamma(p, shape = fitted_means^2*gamma_prec, scale = 1/(gamma_prec*fitted_means))
-
-gp_data = gamma_data %>% filter(u<prcp) %>%
-  mutate(y = prcp-u)
+gp_data = gamma_data %>% mutate(log_mean = gamma_log_mean[(index-1)*nweek + week_rw +1]) %>%
+  mutate(u = qgamma_mean_prec(p, exp(log_mean), gamma_prec)) %>%
+  filter(u < prcp) %>%
+  mutate(y = prcp - u)
 
 gp_data[c('prcp',  'u')] = NULL
 
+lin_combs = get_linear_combinations(nweek, nstat)
+
 sdRef = 0.5
 sdRefProb = 0.1
-hyper_rw_prec = list(prec = list(prior = 'pc.prec', param = c(sdRef, sdRefProb)))
+hyper_rw_prec = list(prec = list(prior = 'pc.prec', param = c(sdRef, sdRefProb), initial = 2.5))
+hyper_iid_prec = list(prec = list(prior = 'pc.prec', param = c(0.5, 0.1), initial = 4))
 
-hyper_matern = list(range = list(prior = 'pc.range', param = c(40000, 0.1)))
+hyper_matern = list(range = list(prior = 'pc.range', param = c(100, 0.1), initial = 2.6),
+                    prec = list (prior = 'pc.prec', param = c(0.5, 0.1), initial = 4.2))
 
 form = y ~ f(week_rw, model = 'rw2', hyper = hyper_rw_prec, cyclic = T, scale.model = T, constr = T) +
-  f(week_iid, model = 'iid', constr = T) +
+  f(week_iid, model = 'iid', hyper = hyper_iid_prec, constr = T) +
   f(index, model = 'dmatern', locations = locations, hyper = hyper_matern, constr = T) +
-  offset(gamma_log_mean)
+  offset(log_mean)
 
 result_gp = inla(form,
                 data = gp_data,
                 family = 'gp',
                 control.family = list(control.link = list(quantile = 0.5),
-                                      hyper = list(xi = list(prior = 'pc.gevtail', param = c(4.5, 0, 0.99)))),
-                #control.predictor = list(compute = T, link = 1),
-                control.predictor = list(compute = T, quantiles = c(0.5)),
+                                      hyper = list(xi = list(prior = 'pc.gevtail', 
+                                                             param = c(4.5, 0, 0.99)))),
+                lincomb = lin_combs, 
                 control.compute=list(openmp.strategy="pardiso.parallel"),
-                num.threads = 30,
+                num.threads = 20,
                 verbose = T)
 
 save(result_gp, file = 'files/result_gp_temp')
+save(gp_data, file = 'files/gp_data')
 
 
