@@ -33,7 +33,13 @@ ggplot(data = NULL, aes(x = 0:52))+
   geom_ribbon(aes(min = result_gp$summary.random$week_rw$`0.025quant`,
                   max = result_gp$summary.random$week_rw$`0.975quant`), alpha = 0.3) +
   geom_line(aes(y = result_gp$summary.random$week_rw$mean), col = 'red') +
-  xlab('Week') + ylab('Effect on latent field')
+  xlab('Week') + ylab('RW effect on latent field')
+
+ggplot(data = NULL, aes(x = 0:52))+
+  geom_ribbon(aes(min = result_gp$summary.random$week_iid$`0.025quant`,
+                  max = result_gp$summary.random$week_iid$`0.975quant`), alpha = 0.3) +
+  geom_line(aes(y = result_gp$summary.random$week_iid$mean), col = 'red') +
+  xlab('Week') + ylab('Iid effect on gp latent field')
 
 ggplot(data = as.data.frame(locations), aes(x = X, y = Y)) +
   geom_point(aes(col = result_gp$summary.random$index$mean)) +
@@ -68,6 +74,10 @@ ggplot(data = NULL, aes(x=0:52)) +
   geom_line(aes(y = exp(gamma_effect_blindern$mean)), col = 'red') +
   xlab('Week') + ylab('Gamma mean')
 
+ggplot(data = as.data.frame(result_gp$marginals.hyperpar$`Tail parameter for the genPareto observations`),
+       aes(x = x, y = y)) +
+  geom_line(aes(col = 'Posterior'))
+
 # plot weekly quantiles for one station
 station = 'SN18700'
 
@@ -95,13 +105,18 @@ quants = u_station + gp_medians_station*(((1-alpha)/probs_station)^(-xi)-1)/((0.
 ggplot(data = NULL, aes(x = 0:52, y = quants)) +
   geom_point(col = 'blue')
 
+# need to run inla temporal from project thesis before running this code chunk
 ggplot(NULL, aes(x = 1:52))+
   geom_ribbon(aes(ymin = quantDf$lower, ymax = quantDf$upper), fill = 'gray', alpha = 0.5)+
-  geom_line(aes(y=quantDf$fitted, col = 'Fitted'))+
-  ggtitle('Station quantile comparison')+
+  geom_line(aes(y=quantDf$fitted, col = 'Old'))+
+  ggtitle(paste(c('Old model vs new model on ', station), collapse = ''))+
   xlab('Week') + ylab('0.998 quantile') +
   theme(plot.title = element_text(hjust = 0.5)) +
-  geom_line(aes(x = 1:53, y = quants))
+  geom_line(aes(x = 1:53, y = quants, col = 'New')) +
+  geom_line(aes(y=observedQuants, col = 'Observed'), linetype = 'dashed')
+ggsave(filename = paste(c('fig/old_vs_new_', station, '.png'), collapse = ''),
+       width = 10, height = 10)
+
 
 
 

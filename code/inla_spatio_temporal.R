@@ -2,6 +2,7 @@ library(INLA)
 
 # get utility functions
 source('code/utils.R')
+source('code/data_preparation.R')
 
 # read data
 raw_data = read_raw_data()
@@ -11,17 +12,8 @@ station_info = read_station_information(data)
 # extract station location info
 locations = get_locations(station_info = station_info)
 
-# set station index
-
-
 # prepare data for fit
-gamma_data =  data %>% gather(ID, prcp, -time) %>%
-  filter(!is.na(prcp), prcp > 0) %>%
-  full_join(.,station_info) %>%
-  mutate(week_rw = floor(yday(time)/7)) %>%
-  mutate(week_iid = week_rw)
-
-gamma_data[c('time', 'ID', 'masl')] = NULL
+gamma_data = prepare_gamma_data(data, station_info)
 
 # define linear combinations for which to compute marginals
 n_weeks = 53
