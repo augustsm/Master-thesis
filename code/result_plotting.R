@@ -70,11 +70,14 @@ ggplot(data = NULL, aes(x=1:53)) +
 gamma_effect_blindern = extract_linear_combinations(result_gamma, 
                                                     station = 'SN18700', 
                                                     station_info = station_info)
+observed_quants_blindern = sapply(1:53, function(i) mean(data$SN18700[week(data$time)==i & data$SN18700>0], na.rm=T))
 ggplot(data = NULL, aes(x=1:53)) +
   geom_ribbon(aes(min = exp(gamma_effect_blindern$lower),
                   max = exp(gamma_effect_blindern$upper)), alpha = 0.3) +
   geom_line(aes(y = exp(gamma_effect_blindern$mean)), col = 'red') +
+  geom_line(aes(y = observed_quants_blindern), col = 'blue', linetype = 'dashed')
   xlab('Week') + ylab('Gamma mean')
+ggsave(filename = 'fig/posterior_gamma_mean.png', width = 5, height = 5)
 
 ggplot(data = as.data.frame(result_gp$marginals.hyperpar$`Tail parameter for the genPareto observations`),
        aes(x = x, y = y)) +
