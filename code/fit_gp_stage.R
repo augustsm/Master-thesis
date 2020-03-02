@@ -11,7 +11,7 @@ load_bool = TRUE
 if(load_bool){
   load('files/gp_data')
 }else{
-  gp_data = prepare_gp_data(temp = TRUE)
+  gp_data = prepare_gp_data(station_info, temp = TRUE)
   save(gp_data, file = 'files/gp_data')
 }
 
@@ -27,9 +27,29 @@ hyper_iid_prec = list(prec = list(prior = 'pc.prec', param = c(0.5, 0.1), initia
 hyper_matern = list(range = list(prior = 'pc.range', param = c(100, 0.1), initial = 2.6),
                     prec = list (prior = 'pc.prec', param = c(0.5, 0.1), initial = 4.2))
 
-form = y ~ f(week_rw, model = 'rw2', hyper = hyper_rw_prec, cyclic = T, scale.model = T, constr = T) +
-  f(week_iid, model = 'iid', hyper = hyper_iid_prec, constr = T) +
-  f(index, model = 'dmatern', locations = locations, hyper = hyper_matern, constr = T) +
+# form = y ~ f(week_rw, model = 'rw2', hyper = hyper_rw_prec, cyclic = T, scale.model = T, constr = T) +
+#   f(week_iid, model = 'iid', hyper = hyper_iid_prec, constr = T) +
+#   f(index, model = 'dmatern', locations = locations, hyper = hyper_matern, constr = T) +
+#   offset(log_mean)
+
+form = y ~ 
+  f(week_rw, 
+    model = 'rw2', 
+    hyper = hyper_rw_prec, 
+    cyclic = T, 
+    scale.model = T, 
+    constr = T) +
+  f(week_iid, 
+    model = 'iid', 
+    hyper = hyper_iid_prec, 
+    constr = T) +
+  f(index, 
+    model = 'dmatern', 
+    locations = locations, 
+    hyper = hyper_matern, 
+    constr = T, 
+    replicate = iweek, 
+    nrep = 53) +
   offset(log_mean)
 
 result_gp = inla(form,
@@ -39,7 +59,7 @@ result_gp = inla(form,
                                       hyper = list(xi = list(prior = 'pc.gevtail', 
                                                              param = c(4.5, 0, 0.99)))),
                 lincomb = lin_combs, 
-                control.compute=list(config = T, openmp.strategy="pardiso.parallel"),
+                control.compute=list(openmp.strategy="pardiso.parallel"),
                 num.threads = 20,
                 verbose = T)
 

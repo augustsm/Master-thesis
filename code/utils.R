@@ -71,9 +71,9 @@ station_to_index = function(station, station_info) {
 get_linear_combinations = function(n_weeks, n_stations){
   lin_combs = vector(length = n_stations*n_weeks)
   for(i in 1:n_stations){
-    stat_vec = rep(NA, n_stations)
-    stat_vec[i] = 1
     for(j in 1:n_weeks){
+      stat_vec = rep(NA, n_stations*n_weeks)
+      stat_vec[(j-1)*n_stations + i] = 1
       week_vec = rep(NA, n_weeks)
       week_vec[j] = 1
       lin = inla.make.lincomb('(Intercept)' = 1, 'week_rw' = week_vec, 'index' = stat_vec)

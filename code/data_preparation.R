@@ -10,8 +10,9 @@ prepare_gamma_data = function(data, station_info){
   gamma_data =  data %>% gather(ID, prcp, -time) %>%
     filter(!is.na(prcp), prcp > 0) %>%
     full_join(.,station_info) %>%
-    mutate(week_rw = floor(yday(time)/7)) %>%
-    mutate(week_iid = week_rw)
+    mutate(week_rw = ceiling(yday(time)/7)) %>%
+    mutate(week_iid = week_rw) %>%
+    mutate(iweek = week_rw)
   
   gamma_data[c('time', 'ID', 'masl')] = NULL
   gamma_data
@@ -44,8 +45,9 @@ prepare_binom_data = function(data, station_info, temp, p = NULL){
   extreme_obs = gamma_data %>% filter(u<prcp)
   
   binom_data = data.frame(index = rep(1:nstat, each = nweek),
-                          week_rw = rep(0:(nweek-1), nstat),
-                          week_iid = rep(0:(nweek-1), nstat))
+                          week_rw = rep(1:(nweek), nstat),
+                          week_iid = rep(1:(nweek), nstat),
+                          iweek = rep(1:(nweek), nstat))
   
   y = sapply(1:(nstat*nweek), function(i) sum(extreme_obs$index == binom_data$index[i] &
                                                 extreme_obs$week_rw == binom_data$week_rw[i]))
@@ -53,7 +55,7 @@ prepare_binom_data = function(data, station_info, temp, p = NULL){
   
   all_data = data %>% gather(ID, prcp, -time) %>%
     filter(!is.na(prcp)) %>%
-    mutate(week = floor(yday(time)/7)) %>%
+    mutate(week = ceiling(yday(time)/7)) %>%
     full_join(., station_info)
   
   all_data[c('ID', 'masl', 'X', 'Y')] = NULL
@@ -67,7 +69,7 @@ prepare_binom_data = function(data, station_info, temp, p = NULL){
   binom_data
 }
 
-prepare_gp_data = function(data, station_info, temp, p = NULL){
+prepare_gp_data = function(station_info, temp, p = NULL){
   
   nstat = max(station_info$index)
   nweek = 53
@@ -94,4 +96,6 @@ prepare_gp_data = function(data, station_info, temp, p = NULL){
     mutate(y = prcp - u)
   
   gp_data[c('prcp',  'u')] = NULL
+  
+  gp_data
 }

@@ -31,9 +31,28 @@ hyper_matern = list(range = list(prior = 'pc.range', param = c(100, 0.1), initia
                     prec = list(prior = 'pc.prec', param = c(0.5, 0.1), initial = 3.1))
 
 # define formula object
-form = prcp ~ f(week_rw, model = 'rw2', hyper = hyper_rw_prec, cyclic = T, scale.model = T, constr = T) +
-  f(week_iid, model = 'iid', hyper = hyper_iid_prec, constr = T) +
-  f(index, model = 'dmatern', locations = locations, hyper = hyper_matern, constr = T)
+# form = prcp ~ f(week_rw, model = 'rw2', hyper = hyper_rw_prec, cyclic = T, scale.model = T, constr = T) +
+#   f(week_iid, model = 'iid', hyper = hyper_iid_prec, constr = T) +
+#   f(index, model = 'dmatern', locations = locations, hyper = hyper_matern, constr = T)
+
+form = prcp ~ 
+  f(week_rw, 
+    model = 'rw2', 
+    hyper = hyper_rw_prec, 
+    cyclic = T, 
+    scale.model = T, 
+    constr = T) +
+  f(week_iid, 
+    model = 'iid', 
+    hyper = hyper_iid_prec, 
+    constr = T) +
+  f(index, 
+    model = 'dmatern', 
+    locations = locations, 
+    hyper = hyper_matern, 
+    constr = T, 
+    group = iweek,
+    control.group = list(model = 'rw2', hyper = hyper_rw_prec, cyclic = T, scale.model = F))
 
 # fit gamma stage
 cat('Fit gamma stage \n')
