@@ -1,24 +1,7 @@
-library(tidyverse)
-library(lubridate)
+source('code/utils.R')
 
-remove_bad_data = function(data){
-  time = data$time
-  data$SN17640[time<ymd(20190909)] = NA
-  data$SN17875[time > ymd(20190810) & time < ymd(20190813)] = NA
-  data$SN18265 = NULL
-  data$SN18690 = NULL
-  data$SN19490[time<ymd(20140201)] = NA
-  data$SN19660[time>ymd(20190212)] = NA
-  data[c('SN27470', 'SN30275', 'SN30278', 'SN30282', 'SN30285', 'SN30288', 'SN30293', 'SN19820', 'SN30325', 'SN30340', 'SN30350', 'SN3190')] = NULL
-  data$SN4455[time>ymd(20190910)] = NA
-  data$SN4781 = NULL
-  data$SN4825[time>ymd(20190330)] = NA
-  data$SN30320[year(time) == 2010] = NA
-  data
-}
-
-raw_data = read_csv(file = 'data/data_2009-2019.csv', col_types = paste(c('T', rep('d', 172)), collapse = ''))
-station_info = read_csv(file = 'data/stations.csv', col_types = 'ccdcccddTTcc')
+raw_data = read_raw_data()
+station_info = read_station_information(raw_data)
 
 raw_data_plot = raw_data %>% gather(station, prcp, -time) %>%
   ggplot(aes(x = time, y = prcp)) + geom_line() + facet_wrap(station~., ncol = 10) +
@@ -26,9 +9,12 @@ raw_data_plot = raw_data %>% gather(station, prcp, -time) %>%
 
 ggsave(raw_data_plot, 'fig/raw_data_plot.pdf')
 
-data = remove_bad_data(raw_data)
+raw_data %>% gather(station, prcp, -time) %>%
+  filter(station %in% unique(station)[rep(c(T, rep(F,10)),15)]) %>%
+  ggplot(aes(x = time, y = prcp)) + geom_line() + facet_wrap(station~., ncol = 4) +
+  xlab('Year') + ylab('Precipitation (mm/h)')
 
-station_info = station_info %>% filter(ID %in% colnames(data))
+data = remove_bad_data(raw_data)
 
 statistics_df = data.frame('ID' = colnames(data[,-1]), 'mean' = colMeans(data[,-1], na.rm = T))
 quant_df = data %>% gather(ID, val, -time) %>% group_by(ID) %>% summarise(`0.99quant` = quantile(val, 0.99, na.rm=T))
@@ -68,7 +54,7 @@ data %>% gather(station, val, -time) %>%
   geom_line(aes(y=exp(result_gamma$summary.random$week$mean+result_gamma$summary.fixed$mean)), 
             col = 'red')
 
-coords = as.data.frame(latlon_to_laea(station_info[c('X', 'Y')])@coords)
+coords = as.data.frame(get_locations(station_info = station_info))
 coords$ID = station_info$ID
 filtered_data_spat_plot = data %>% gather(ID, prcp, -time) %>%
   filter(!is.na(prcp)) %>%
@@ -76,7 +62,7 @@ filtered_data_spat_plot = data %>% gather(ID, prcp, -time) %>%
   summarise(num_obs = length(prcp), quant = quantile(prcp, 0.998)) %>%
   full_join(., coords) %>%
   ggplot(aes(x = X, y = Y, col = quant, size = num_obs)) + 
-    geom_point() + xlab('East-West') + ylab('North-South') +
+    geom_point() + xlab('West - East') + ylab('South - North') +
     labs(size = 'Number of observations', col =  '0.998-quantile')
     
 ggsave(filename = 'fig/filtered_data_spat_plot.png', 

@@ -12,7 +12,9 @@ prepare_gamma_data = function(data, station_info){
     full_join(.,station_info) %>%
     mutate(week_rw = ceiling(yday(time)/7)) %>%
     mutate(week_iid = week_rw) %>%
-    mutate(iweek = week_rw)
+    mutate(iweek = week_rw) %>%
+    mutate(sin_week = sin(2*pi*week_rw/53)) %>%
+    mutate(cos_week = cos(2*pi*week_rw/53))
   
   gamma_data[c('time', 'ID', 'masl')] = NULL
   gamma_data

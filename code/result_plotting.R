@@ -66,6 +66,49 @@ ggplot(data = NULL, aes(x=1:53)) +
   geom_line(aes(y = result_gp$summary.random$week_iid$mean + result_gp$summary.random$week_rw$mean, col = 'Total')) +
   xlab('Week') + ylab('Effect on latent field')
 
+for(i in 1:157){
+print(ggplot(data = NULL) +
+  geom_line(aes(x=1:53,y=exp(result_gamma$summary.random$index$mean[(0:52)*157+i]+result_gamma$summary.random$week_iid$mean)), col = 'blue') +
+  geom_point(aes(x=gamma_data[gamma_data$index==i,]$week_rw, y = gamma_data[gamma_data$index==i,]$prcp)) +
+  xlab('Week') + ylab('Observations vs posterior mean') +
+  ggtitle(index_to_station(i, station_info)))
+}
+
+plot_spatio_temporal_effect = function(stage, stations){
+  
+  effect_df = data.frame(matrix(ncol = 3, nrow = 0))
+  colnames(effect_df) = c('effect', 'station', 'week')
+  if(stage == 'gamma'){
+    for(station in stations){
+      i = station_to_index(station, station_info)
+      effect_i = data.frame('effect' = result_gamma$summary.random$index$mean[(0:52)*157+i],
+                            'station' = rep(station, 53),
+                            'week' = 1:53)
+      effect_df = rbind(effect_df, effect_i)
+    }
+  }else if(stage == 'binomial'){
+    for(station in stations){
+      i = station_to_index(station, station_info)
+      effect_i = data.frame('effect' = result_binom$summary.random$index$mean[(0:52)*157+i],
+                            'station' = rep(station, 53),
+                            'week' = 1:53)
+      effect_df = rbind(effect_df, effect_i)
+    }  
+  }else if(stage == 'gp'){
+    for(station in stations){
+      i = station_to_index(station, station_info)
+      effect_i = data.frame('effect' = result_gp$summary.random$index$mean[(0:52)*157+i],
+                            'station' = rep(station, 53),
+                            'week' = 1:53)
+      effect_df = rbind(effect_df, effect_i)
+    }  
+  }
+  
+  print(ggplot(data = effect_df, aes(x = week)) +
+          geom_line(aes(y = effect, col = station))+
+          xlab('Week') + ylab('Effect on latent field') +
+          ggtitle(paste(c(stage, ' stage at ', stations[1]), collapse = '')))
+}
 
 gamma_effect_blindern = extract_linear_combinations(result_gamma, 
                                                     station = 'SN18700', 

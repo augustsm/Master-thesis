@@ -68,6 +68,18 @@ station_to_index = function(station, station_info) {
   index = station_info$index[station_info$ID == station]
 }
 
+index_to_station = function(index, station_info){
+  station = station_info$ID[station_info$index == index]
+}
+
+get_close_stations = function(station, station_info, locations){
+  x = locations[,1][station_info$ID==station]
+  y = locations[,2][station_info$ID==station]
+  station_info = station_info %>% mutate(d = sqrt((x-locations[,1])^2+(y-locations[,2])^2)) %>%
+    arrange(., d)
+  as.data.frame(station_info)[1:5,]
+}
+
 get_linear_combinations = function(n_weeks, n_stations){
   lin_combs = vector(length = n_stations*n_weeks)
   for(i in 1:n_stations){
