@@ -29,36 +29,42 @@ hyper_iid_prec = list(prec = list(prior = 'pc.prec', param = c(0.5, 0.1), initia
 hyper_group_prec = list(prec = list(prior = 'pc.prec', param = c(0.01, 0.1), initial = 2.6))
 
 hyper_matern = list(range = list(prior = 'pc.range', param = c(100, 0.1), initial = 1.7),
-                    prec = list(prior = 'pc.prec', param = c(0.01, 0.1), initial = 1))
+                    prec = list(prior = 'pc.prec', param = c(0.1, 0.1), initial = 1))
 
-# define formula object
+# formula with rw2 and iid for week and dmatern for space
 # form = prcp ~ f(week_rw, model = 'rw2', hyper = hyper_rw_prec, cyclic = T, scale.model = T, constr = T) +
 #   f(week_iid, model = 'iid', hyper = hyper_iid_prec, constr = T) +
 #   f(index, model = 'dmatern', locations = locations, hyper = hyper_matern, constr = T)
 
-form = prcp ~
-  f(week_rw, 
-    model = 'rw2', 
-    hyper = hyper_rw_prec, 
-    cyclic = T, 
-    scale.model = T, 
-    constr = T) +
-  f(week_iid, 
-    model = 'iid', 
-    hyper = hyper_iid_prec, 
-    constr = T) +
-  f(index, 
-    model = 'dmatern', 
-    locations = locations, 
-    hyper = hyper_matern, 
-    constr = T, 
-    group = iweek,
-    control.group = list(model = 'rw2', 
-                         hyper = hyper_group_prec, 
-                         cyclic = T, 
-                         scale.model = F, 
-                         fixed = F)
-    )
+# formula with rw2 and iid for week and grouped rw2 dmatern for space
+# form = prcp ~
+#   f(week_rw,
+#     model = 'rw2',
+#     hyper = hyper_rw_prec,
+#     cyclic = T,
+#     scale.model = T,
+#     constr = T) +
+#   f(week_iid,
+#     model = 'iid',
+#     hyper = hyper_iid_prec,
+#     constr = T) +
+#   f(index,
+#     model = 'dmatern',
+#     locations = locations,
+#     hyper = hyper_matern,
+#     constr = T,
+#     group = iweek,
+#     control.group = list(model = 'rw2',
+#                          hyper = hyper_group_prec,
+#                          cyclic = T,
+#                          scale.model = F,
+#                          fixed = F)
+#     )
+
+form = prcp ~ f(index, model = 'dmatern', locations = locations, hyper = hyper_matern, constr = T) +
+  f(index_cos, cos_week, model = 'dmatern', locations = locations, hyper = hyper_matern) +
+  f(index_sin, sin_week, model = 'dmatern', locations = locations, hyper = hyper_matern)
+  
 
 #gamma_data = as.data.frame(gamma_data)[rep(c(T, rep(F,100)),7000),]
 

@@ -16,6 +16,19 @@ remove_bad_data = function(data){
   data$SN4781 = NULL
   data$SN4825[time>ymd(20190330)] = NA
   data$SN30320[year(time) == 2010] = NA
+  weeks = ceiling(yday(time)/7)
+  for(station in colnames(data)[-1]){
+    n_empty_weeks = 0
+    for(week in 1:53){
+      tot_obs_station_week = sum(!is.na(data[[station]][weeks == week]))
+      if(tot_obs_station_week==0){
+        n_empty_weeks = n_empty_weeks + 1
+      }
+    }
+    if(n_empty_weeks > 3){
+      data[station] = NULL
+    }
+  }
   data
 }
 
@@ -80,20 +93,53 @@ get_close_stations = function(station, station_info, locations){
   as.data.frame(station_info)[1:5,]
 }
 
-get_linear_combinations = function(n_weeks, n_stations){
+get_linear_combinations = function(n_weeks, n_stations, model = 'rw2+dmatern'){
   lin_combs = vector(length = n_stations*n_weeks)
-  for(i in 1:n_stations){
+  
+  if(model == 'rw2+dmatern'){
+    for(i in 1:n_stations){
+      for(j in 1:n_weeks){
+        stat_vec = rep(NA, n_stations)
+        stat_vec[i] = 1
+        week_vec = rep(NA, n_weeks)
+        week_vec[j] = 1
+        lin = inla.make.lincomb('(Intercept)' = 1, 'week_rw' = week_vec, 'index' = stat_vec)
+        names(lin) = paste(c('lc', as.character((i-1)*n_weeks + j)), collapse = '')
+        lin_combs[(i-1)*n_weeks + j] = lin
+      }
+    }
+  }else if(model == 'rw2+groupeddmatern'){
+    for(i in 1:n_stations){
+      for(j in 1:n_weeks){
+        stat_vec = rep(NA, n_stations*n_weeks)
+        stat_vec[(j-1)*n_stations + i] = 1
+        week_vec = rep(NA, n_weeks)
+        week_vec[j] = 1
+        lin = inla.make.lincomb('(Intercept)' = 1, 'week_rw' = week_vec, 'index' = stat_vec)
+        names(lin) = paste(c('lc', as.character((i-1)*n_weeks + j)), collapse = '')
+        lin_combs[(i-1)*n_weeks + j] = lin
+      }
+    }
+  }else if(model == 'periodic'){
+    for(i in 1:n_stations){
     for(j in 1:n_weeks){
-      stat_vec = rep(NA, n_stations*n_weeks)
-      stat_vec[(j-1)*n_stations + i] = 1
-      week_vec = rep(NA, n_weeks)
-      week_vec[j] = 1
-      lin = inla.make.lincomb('(Intercept)' = 1, 'week_rw' = week_vec, 'index' = stat_vec)
+      stat_vec = rep(NA, n_stations)
+      stat_vec[i] = 1
+      stat_vec_cos = rep(NA, n_stations)
+      stat_vec_cos[i] = cos(2*pi*j/53)
+      stat_vec_sin = rep(NA, n_stations)
+      stat_vec_sin[i] = sin(2*pi*j/53)
+      lin = inla.make.lincomb('(Intercept)' = 1,
+                              'index' = stat_vec,
+                              'index_cos' = stat_vec_cos,
+                              'index_sin' = stat_vec_sin)
       names(lin) = paste(c('lc', as.character((i-1)*n_weeks + j)), collapse = '')
       lin_combs[(i-1)*n_weeks + j] = lin
     }
   }
-  
+  }else{
+    lin_combs = NULL
+  }
   lin_combs
 }
 
@@ -112,7 +158,7 @@ extract_linear_combinations = function(result, n_weeks = 53, station = NULL, sta
     lower = result$summary.lincomb.derived$`0.025quant`[((index-1)*n_weeks + 1):(index*n_weeks)]
     upper = result$summary.lincomb.derived$`0.975quant`[((index-1)*n_weeks + 1):(index*n_weeks)]
   }
-  list(mean = mean, lower = lower, upper = upper)
+  data.frame(mean = mean, lower = lower, upper = upper, week = 1:53, station = rep(station, 53))
 }
 
 update_data = function(gamma = FALSE, binom = FALSE, gp = FALSE){

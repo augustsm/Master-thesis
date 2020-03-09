@@ -14,7 +14,9 @@ prepare_gamma_data = function(data, station_info){
     mutate(week_iid = week_rw) %>%
     mutate(iweek = week_rw) %>%
     mutate(sin_week = sin(2*pi*week_rw/53)) %>%
-    mutate(cos_week = cos(2*pi*week_rw/53))
+    mutate(cos_week = cos(2*pi*week_rw/53)) %>%
+    mutate(index_cos = index) %>%
+    mutate(index_sin = index)
   
   gamma_data[c('time', 'ID', 'masl')] = NULL
   gamma_data

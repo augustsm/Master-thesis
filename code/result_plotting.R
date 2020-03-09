@@ -20,6 +20,11 @@ print(ggplot(data = as.data.frame(locations), aes(x = X, y = Y)) +
   ggtitle('Gamma stage'))
 }
 
+ggplot(data = as.data.frame(locations), aes(x = X, y = Y)) +
+  geom_point(aes(col = result_gamma$summary.random$index$mean)) +
+  labs(col = 'Spatial effect') +
+  ggtitle('Gamma stage')
+
 ggplot(data = NULL, aes(x = 1:53))+
   geom_ribbon(aes(min = result_binom$summary.random$week_rw$`0.025quant`,
                   max = result_binom$summary.random$week_rw$`0.975quant`), alpha = 0.3) +
@@ -65,6 +70,29 @@ ggplot(data = NULL, aes(x=1:53)) +
   geom_line(aes(y = result_gp$summary.random$week_iid$mean, col = 'IID')) +
   geom_line(aes(y = result_gp$summary.random$week_iid$mean + result_gp$summary.random$week_rw$mean, col = 'Total')) +
   xlab('Week') + ylab('Effect on latent field')
+
+for(i in 1:148){
+  linear_combinations = extract_linear_combinations(result_gamma, 
+                                                    station = index_to_station(i, station_info),
+                                                    station_info = station_info)
+  print(ggplot(data=NULL,aes(x=1:53)) +
+          geom_ribbon(aes(min=exp(linear_combinations$lower), max=exp(linear_combinations$upper)), alpha = 0.3) +
+          geom_line(aes(y=exp(linear_combinations$mean)), col = 'blue') +
+          geom_point(aes(x=gamma_data[gamma_data$index==i,]$week_rw, y = gamma_data[gamma_data$index==i,]$prcp)) +
+          xlab('Week') + ylab('Observations vs posterior') +
+          ggtitle(index_to_station(i, station_info)))
+}
+
+posterior_means_df = as.data.frame(matrix(nrow = 0, ncol = 5))
+colnames(posterior_means_df) = c('mean', 'lower', 'upper', 'week', 'station')
+for(stat in get_close_stations('SN17000', station_info, locations)$ID){
+  posterior_means_df = rbind(posterior_means_df, extract_linear_combinations(result_gamma, station = stat, station_info = station_info))
+}
+ggplot(data = posterior_means_df, aes(x=week)) +
+  geom_ribbon(aes(min = lower, max = upper, fill = station), alpha = 0.3) +
+  geom_line(aes(y = mean, col = station)) +
+  xlab('Week') + ylab('Posterior effect') +
+  ggtitle('Comparison of close stations')
 
 for(i in 1:157){
 print(ggplot(data = NULL) +

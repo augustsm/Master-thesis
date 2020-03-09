@@ -47,9 +47,7 @@ form = y ~
     model = 'dmatern', 
     locations = locations, 
     hyper = hyper_matern, 
-    constr = T, 
-    replicate = iweek, 
-    nrep = 53) +
+    constr = T) +
   offset(log_mean)
 
 result_gp = inla(form,

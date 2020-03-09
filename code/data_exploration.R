@@ -95,6 +95,17 @@ raw_data %>% filter(SN17875>5) %>%
   ggplot(aes(x = SN17875)) + geom_histogram(boundary = 5)
   
 
+for(station in colnames(data)[-1]){
+  cat(station, ': ')
+  for(week in 1:53){
+    tot = sum(!is.na(data[[station]][ceiling(yday(data[['time']])/7) == week]))
+    if(tot==0){
+      cat(week, ', ')
+    }
+  }
+  cat('\n')
+}
+
 
 
 
