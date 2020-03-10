@@ -3,15 +3,18 @@ library(INLA)
 source('code/utils.R')
 source('code/data_preparation.R')
 
+fit_gp_stage = function(p = NULL, load_bool = TRUE){
 data = read_data()
 station_info = read_station_information(data)
 locations = get_locations(station_info = station_info)
 
-load_bool = TRUE
+if(!is.null(p)){
+  load_bool = FALSE
+}
 if(load_bool){
   load('files/gp_data')
 }else{
-  gp_data = prepare_gp_data(station_info, temp = TRUE)
+  gp_data = prepare_gp_data(station_info, temp = TRUE, p = p)
   save(gp_data, file = 'files/gp_data')
 }
 
@@ -62,5 +65,5 @@ result_gp = inla(form,
                 verbose = T)
 
 save(result_gp, file = 'files/result_gp_temp')
-
+}
 

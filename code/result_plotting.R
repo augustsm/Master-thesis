@@ -3,7 +3,9 @@ library(stats)
 
 source('code/utils.R')
 
-locations = get_locations()
+data = read_data()
+station_info = read_station_information(data)
+locations = get_locations(station_info = station_info)
 
 load('files/result_gamma_temp')
 load('files/result_binom_temp')
@@ -15,7 +17,7 @@ plot(result_gamma)
 
 for(i in 1:53){
 print(ggplot(data = as.data.frame(locations), aes(x = X, y = Y)) +
-  geom_point(aes(col = result_gamma$summary.random$index$mean[((i-1)*157+1):(i*157)])) +
+  geom_point(aes(col = result_binom$summary.random$index$mean[((i-1)*148+1):(i*148)])) +
   labs(col = 'Spatial effect') +
   ggtitle('Gamma stage'))
 }
@@ -24,6 +26,23 @@ ggplot(data = as.data.frame(locations), aes(x = X, y = Y)) +
   geom_point(aes(col = result_gamma$summary.random$index$mean)) +
   labs(col = 'Spatial effect') +
   ggtitle('Gamma stage')
+
+ggplot(data = as.data.frame(locations), aes(x = X, y = Y)) +
+  geom_point(aes(col = result_gamma$summary.random$index_sin$mean)) +
+  labs(col = 'Spatial effect') +
+  ggtitle('Gamma stage, sine term')
+
+ggplot(data = as.data.frame(locations), aes(x = X, y = Y)) +
+  geom_point(aes(col = result_gamma$summary.random$index_cos$mean)) +
+  labs(col = 'Spatial effect') +
+  ggtitle('Gamma stage, cosine term')
+
+ggplot(data = NULL, aes(x = result_gamma$summary.random$index_cos$mean, 
+                        y = result_gamma$summary.random$index_sin$mean,
+                        label = station_info$ID)) +
+  geom_point() +
+  geom_text(aes(vjust = 2), size = 3) +
+  xlab('Cos') + ylab('Sin')
 
 ggplot(data = NULL, aes(x = 1:53))+
   geom_ribbon(aes(min = result_binom$summary.random$week_rw$`0.025quant`,
@@ -75,17 +94,23 @@ for(i in 1:148){
   linear_combinations = extract_linear_combinations(result_gamma, 
                                                     station = index_to_station(i, station_info),
                                                     station_info = station_info)
-  print(ggplot(data=NULL,aes(x=1:53)) +
+  
+  station_data = gamma_data[gamma_data$index==i,]
+  n = dim(station_data)[1]
+  m = sapply(1:53, function(j) mean(station_data$prcp[station_data$week_rw==j]))
+  print(ggplot(data=NULL, aes(x=1:53)) +
           geom_ribbon(aes(min=exp(linear_combinations$lower), max=exp(linear_combinations$upper)), alpha = 0.3) +
+          geom_boxplot(data = station_data, aes(x = week_rw, y = prcp, group = week_rw)) +
           geom_line(aes(y=exp(linear_combinations$mean)), col = 'blue') +
-          geom_point(aes(x=gamma_data[gamma_data$index==i,]$week_rw, y = gamma_data[gamma_data$index==i,]$prcp)) +
+          geom_line(aes(y = m), col = 'red', linetype = 'dashed') +
+          geom_label(aes(x=-Inf,y=Inf, hjust=-1, vjust=1, label = paste(c('n=',as.character(n)), collapse = ''))) +
           xlab('Week') + ylab('Observations vs posterior') +
           ggtitle(index_to_station(i, station_info)))
 }
 
 posterior_means_df = as.data.frame(matrix(nrow = 0, ncol = 5))
 colnames(posterior_means_df) = c('mean', 'lower', 'upper', 'week', 'station')
-for(stat in get_close_stations('SN17000', station_info, locations)$ID){
+for(stat in get_close_stations('SN27540', station_info, locations, d_max = 5, n = Inf)$ID){
   posterior_means_df = rbind(posterior_means_df, extract_linear_combinations(result_gamma, station = stat, station_info = station_info))
 }
 ggplot(data = posterior_means_df, aes(x=week)) +
@@ -155,7 +180,11 @@ ggplot(data = as.data.frame(result_gp$marginals.hyperpar$`Tail parameter for the
   geom_line(aes(col = 'Posterior'))
 
 # plot weekly quantiles for one station
-station = 'SN2480'
+total_quants = sapply(1:53, function(i) quantile(all_data$prcp[all_data$week == i], alpha))
+
+for(i in 1:148){
+
+station = index_to_station(i, station_info)
 
 gamma_means = exp(extract_linear_combinations(result_gamma, station = station, 
                                               station_info = station_info)[['mean']])
@@ -181,18 +210,28 @@ quants = u_station + gp_medians_station*(((1-alpha)/probs_station)^(-xi)-1)/((0.
 ggplot(data = NULL, aes(x = 1:53, y = quants)) +
   geom_point(col = 'blue')
 
-total_quants = sapply(1:53, function(i) quantile(all_data$prcp[all_data$week == i], probs=c(0.998)))
+stat_obs = all_data[all_data$index == i,]
+n = dim(stat_obs)[1]
+station_quants = sapply(1:53, function(j) quantile(stat_obs$prcp[stat_obs$week==j], alpha))
+
+close_stations = get_close_stations(station, station_info, locations, n=Inf, d_max = 10)$ID
+close_data = all_data[all_data$ID %in% close_stations,]
+close_station_quants = sapply(1:53, function(j) quantile(close_data$prcp[close_data$week==j], alpha))
 
 # need to run inla temporal from project thesis before running this code chunk
-ggplot(NULL, aes(x = 1:52))+
-  geom_ribbon(aes(ymin = quantDf$lower, ymax = quantDf$upper), fill = 'gray', alpha = 0.5)+
-  geom_line(aes(y=quantDf$fitted, col = 'Old'))+
-  ggtitle(paste(c('Old model vs new model on ', station), collapse = ''))+
+print(ggplot(NULL, aes(x = 1:53))+
+  # geom_ribbon(aes(ymin = quantDf$lower, ymax = quantDf$upper), fill = 'gray', alpha = 0.5)+
+  # geom_line(aes(y=quantDf$fitted, col = 'Old'))+
+  ggtitle(paste(c('Fitted vs observed on ', station), collapse = ''))+
   xlab('Week') + ylab('0.998 quantile') +
   theme(plot.title = element_text(hjust = 0.5)) +
-  geom_line(aes(x = 1:53, y = quants, col = 'New')) +
-  geom_line(aes(y=observedQuants, col = 'Observed'), linetype = 'dashed') +
-  geom_line(aes(x=1:53,y = total_quants, col = 'Population wide'), linetype = 'dashed')
+  geom_line(aes(x = 1:53, y = quants, col = 'Fitted')) +
+  geom_line(aes(y=station_quants, col = 'Observed'), linetype = 'dashed') +
+  geom_line(aes(y=close_station_quants, col = 'Close stations'), linetype = 'dashed') +
+  geom_line(aes(x=1:53,y = total_quants, col = 'Population wide'), linetype = 'dashed')+
+  geom_label(aes(x=-Inf,y=Inf, hjust=-1, vjust=1, label = paste(c('n=',as.character(n)), collapse = ''))))
+}
+
 ggsave(filename = paste(c('fig/old_vs_new_', station, '.png'), collapse = ''),
        width = 10, height = 10)
 

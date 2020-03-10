@@ -3,15 +3,18 @@ library(INLA)
 source('code/utils.R')
 source('code/data_preparation.R')
 
+fit_binom_stage = function(p = NULL, load_bool = TRUE){
 data = read_data()
 station_info = read_station_information(data)
 locations = get_locations(station_info = station_info)
 
-load_bool = TRUE
+if(!is.null(p)){
+  load_bool = FALSE
+}
 if(load_bool){
   load('files/binom_data')
 }else{
-  binom_data = prepare_binom_data(data = data, station_info = station_info, temp = TRUE)
+  binom_data = prepare_binom_data(data = data, station_info = station_info, temp = TRUE, p = p)
   save(binom_data, file = 'files/binom_data')
 }
 
@@ -58,4 +61,4 @@ result_binom = inla(formula = form,
                     verbose = T)
 
 save(result_binom, file = 'files/result_binom_temp')
-
+}

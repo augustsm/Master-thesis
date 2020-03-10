@@ -9,13 +9,14 @@ remove_bad_data = function(data){
   data$SN17875[time > ymd(20190810) & time < ymd(20190813)] = NA
   data$SN18265 = NULL
   data$SN18690 = NULL
-  data$SN19490[time<ymd(20140201)] = NA
+  data$SN19490[time<ymd(20160101)] = NA
   data$SN19660[time>ymd(20190212)] = NA
   data[c('SN27470', 'SN30275', 'SN30278', 'SN30282', 'SN30285', 'SN30288', 'SN30293', 'SN19820', 'SN30325', 'SN30340', 'SN30350', 'SN3190')] = NULL
   data$SN4455[time>ymd(20190910)] = NA
   data$SN4781 = NULL
   data$SN4825[time>ymd(20190330)] = NA
   data$SN30320[year(time) == 2010] = NA
+  data$SN19430[88494] = NA
   weeks = ceiling(yday(time)/7)
   for(station in colnames(data)[-1]){
     n_empty_weeks = 0
@@ -85,12 +86,15 @@ index_to_station = function(index, station_info){
   station = station_info$ID[station_info$index == index]
 }
 
-get_close_stations = function(station, station_info, locations){
+get_close_stations = function(station, station_info, locations, n=5, d_max=Inf){
   x = locations[,1][station_info$ID==station]
   y = locations[,2][station_info$ID==station]
   station_info = station_info %>% mutate(d = sqrt((x-locations[,1])^2+(y-locations[,2])^2)) %>%
-    arrange(., d)
-  as.data.frame(station_info)[1:5,]
+    arrange(., d) %>% filter(d<d_max)
+  
+  n_min = dim(station_info)[1]
+  
+  as.data.frame(station_info)[1:min(n, n_min),]
 }
 
 get_linear_combinations = function(n_weeks, n_stations, model = 'rw2+dmatern'){
@@ -158,7 +162,7 @@ extract_linear_combinations = function(result, n_weeks = 53, station = NULL, sta
     lower = result$summary.lincomb.derived$`0.025quant`[((index-1)*n_weeks + 1):(index*n_weeks)]
     upper = result$summary.lincomb.derived$`0.975quant`[((index-1)*n_weeks + 1):(index*n_weeks)]
   }
-  data.frame(mean = mean, lower = lower, upper = upper, week = 1:53, station = rep(station, 53))
+  data.frame(mean = mean, lower = lower, upper = upper)
 }
 
 update_data = function(gamma = FALSE, binom = FALSE, gp = FALSE){
@@ -174,6 +178,13 @@ update_data = function(gamma = FALSE, binom = FALSE, gp = FALSE){
     load('files/result_gp_temp')
     save(result_gp, file = 'files/result_gp')
   }
+}
+
+quantile_loss = function(y, q, alpha){
+  d = y-q
+  l = sum(d[d>0]*alpha)
+  l = l - sum(d[d<0]*(1-alpha))
+  l
 }
 
 qgamma_mean_prec = function(p, x, prec){

@@ -6,6 +6,16 @@ get_p = function(){
   p = 0.89
 }
 
+prepare_all_data = function(data, station_info){
+  all_data = data %>% gather(ID, prcp, -time) %>%
+    filter(!is.na(prcp)) %>%
+    mutate(week = ceiling(yday(time)/7)) %>%
+    full_join(., station_info)
+  all_data[c('ID', 'masl', 'X', 'Y')] = NULL
+  
+  all_data
+}
+
 prepare_gamma_data = function(data, station_info){
   gamma_data =  data %>% gather(ID, prcp, -time) %>%
     filter(!is.na(prcp), prcp > 0) %>%
@@ -57,12 +67,7 @@ prepare_binom_data = function(data, station_info, temp, p = NULL){
                                                 extreme_obs$week_rw == binom_data$week_rw[i]))
   binom_data$y = y
   
-  all_data = data %>% gather(ID, prcp, -time) %>%
-    filter(!is.na(prcp)) %>%
-    mutate(week = ceiling(yday(time)/7)) %>%
-    full_join(., station_info)
-  
-  all_data[c('ID', 'masl', 'X', 'Y')] = NULL
+  all_data = prepare_all_data(data, station_info)
   
   n = sapply(1:(nstat*nweek), function(i) sum(all_data$index == binom_data$index[i] &
                                                 all_data$week == binom_data$week_rw[i]))

@@ -19,7 +19,7 @@ gamma_data = prepare_gamma_data(data, station_info)
 n_weeks = 53
 n_stations = max(unique(gamma_data$index))
 
-lin_combs = get_linear_combinations(n_weeks, n_stations)
+lin_combs = get_linear_combinations(n_weeks, n_stations, model = 'periodic')
 
 # define priors
 sdRef = 1
