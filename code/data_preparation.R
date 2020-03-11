@@ -63,14 +63,25 @@ prepare_binom_data = function(data, station_info, temp, p = NULL){
                           week_iid = rep(1:(nweek), nstat),
                           iweek = rep(1:(nweek), nstat))
   
-  y = sapply(1:(nstat*nweek), function(i) sum(extreme_obs$index == binom_data$index[i] &
-                                                extreme_obs$week_rw == binom_data$week_rw[i]))
+  y = vector(length = nweek*nstat)
+  for(i in 1:nstat){
+    station_data = extreme_obs[extreme_obs$index == i,]
+    for(j in 1:nweek){
+      y[(i-1)*nweek+j] = sum(station_data$week_rw == j)
+    }
+  }
+  
   binom_data$y = y
   
   all_data = prepare_all_data(data, station_info)
   
-  n = sapply(1:(nstat*nweek), function(i) sum(all_data$index == binom_data$index[i] &
-                                                all_data$week == binom_data$week_rw[i]))
+  n = vector(length = nweek*nstat)
+  for(i in 1:nstat){
+    station_data = all_data[all_data$index == i,]
+    for(j in 1:nweek){
+      n[(i-1)*nweek+j] = sum(station_data$week == j)
+    }
+  }
   
   binom_data$n = n
   binom_data = binom_data %>% filter(n != 0)

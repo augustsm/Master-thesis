@@ -9,12 +9,77 @@ raw_data_plot = raw_data %>% gather(station, prcp, -time) %>%
 
 ggsave(raw_data_plot, 'fig/raw_data_plot.pdf')
 
-raw_data %>% gather(station, prcp, -time) %>%
-  filter(station %in% unique(station)[rep(c(T, rep(F,10)),15)]) %>%
-  ggplot(aes(x = time, y = prcp)) + geom_line() + facet_wrap(station~., ncol = 4) +
-  xlab('Year') + ylab('Precipitation (mm/h)')
+#Plot examples of strange data
+unreliable1 = raw_data %>% gather(station, prcp, -time) %>%
+  filter(station == 'SN17640', time>ymd(20181001), time<ymd(20191101)) %>%
+  ggplot(aes(x = time, y = prcp)) + geom_line() +
+  xlab('Time') + ylab('Precipitation (mm/h)') +
+  theme(axis.text.x = element_text(size = 15),
+        axis.text.y = element_text(size = 15),  
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20))
+ggsave(width = 400*0.0139, height = 300*0.0139,filename = 'fig/unreliable1.png', unreliable1)
+
+unreliable2 =raw_data %>% gather(station, prcp, -time) %>%
+  filter(station == 'SN17875', time > ymd(20190809) & time < ymd(20190814)) %>%
+  ggplot(aes(x = time, y = prcp)) + geom_line() +
+  xlab('Time') + ylab('Precipitation (mm/h)') +
+  theme(axis.text.x = element_text(size = 15),
+        axis.text.y = element_text(size = 15),  
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20))
+ggsave(width = 400*0.0139, height = 300*0.0139,filename = 'fig/unreliable2.png', unreliable2)
+
+unreliable3 = raw_data %>% gather(station, prcp, -time) %>%
+  filter(station == 'SN19490', time > ymd(20120101) & time < ymd(20191101)) %>%
+  ggplot(aes(x = time, y = prcp)) + geom_line() +
+  xlab('Time') + ylab('Precipitation (mm/h)') +
+  theme(axis.text.x = element_text(size = 15),
+        axis.text.y = element_text(size = 15),  
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20))
+ggsave(width = 400*0.0139, height = 300*0.0139,filename = 'fig/unreliable3.png', unreliable3)
+
+unreliable4 = raw_data %>% gather(station, prcp, -time) %>%
+  filter(station == 'SN18265', time > ymd(20180701) & time < ymd(20191101)) %>%
+  ggplot(aes(x = time, y = prcp)) + geom_line() +
+  xlab('Time') + ylab('Precipitation (mm/h)') +
+  theme(axis.text.x = element_text(size = 15),
+        axis.text.y = element_text(size = 15),  
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20))
+ggsave(width = 400*0.0139, height = 300*0.0139,filename = 'fig/unreliable4.png', unreliable4)
+
+unreliable5 = raw_data %>% gather(station, prcp, -time) %>%
+  filter(station == 'SN18690', time > ymd(20180701) & time < ymd(20191101)) %>%
+  ggplot(aes(x = time, y = prcp)) + geom_line() +
+  xlab('Time') + ylab('Precipitation (mm/h)') +
+  theme(axis.text.x = element_text(size = 15),
+        axis.text.y = element_text(size = 15),  
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20))
+ggsave(width = 400*0.0139, height = 300*0.0139,filename = 'fig/unreliable5.png', unreliable5)
+
+unreliable6 = raw_data %>% gather(station, prcp, -time) %>%
+  filter(station == 'SN19660', time > ymd(20180701) & time < ymd(20191101)) %>%
+  ggplot(aes(x = time, y = prcp)) + geom_line() +
+  xlab('Time') + ylab('Precipitation (mm/h)') +
+  theme(axis.text.x = element_text(size = 15),
+        axis.text.y = element_text(size = 15),  
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20))
+ggsave(width = 400*0.0139, height = 300*0.0139,filename = 'fig/unreliable6.png', unreliable6)
+
 
 data = remove_bad_data(raw_data)
+
+stations_to_plot = colnames(data)[-1][rep(c(T, rep(F, 4)), 30)]
+data_plot = data %>% gather(station, prcp, -time) %>%
+  filter(station %in% stations_to_plot) %>%
+  ggplot(aes(x = time, y = prcp)) + geom_line() + facet_wrap(station~., ncol = 5) +
+  xlab('Time (year)') + ylab('Precipitation (mm/h)')
+
+ggsave(data_plot, filename = 'fig/data_plot.png', width = 8.27, height = 11.69)
 
 statistics_df = data.frame('ID' = colnames(data[,-1]), 'mean' = colMeans(data[,-1], na.rm = T))
 quant_df = data %>% gather(ID, val, -time) %>% group_by(ID) %>% summarise(`0.99quant` = quantile(val, 0.99, na.rm=T))
