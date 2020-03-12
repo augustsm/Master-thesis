@@ -17,7 +17,7 @@ alpha_ref = 0.995
 gamma_means = exp(extract_linear_combinations(result_gamma, station_info = station_info)[['mean']])
 gamma_prec = result_gamma$summary.hyperpar$mean[1]
 
-p_vec = seq(0.9, 0.909, 0.001)
+p_vec = seq(0.895,0.9059, 0.0001)
 
 loss = vector(length = length(p_vec))
 
@@ -32,7 +32,7 @@ for(i in 1:length(p_vec)){
   }
   
   fit_binom_stage(p = p)
-  fit_gp_stage(p = p, intial = initial_gp)
+  fit_gp_stage(p = p, initial = initial_gp)
   
   load('files/result_binom_temp')
   load('files/result_gp_temp')

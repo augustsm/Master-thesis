@@ -13,6 +13,8 @@ load('files/result_gp_temp')
 
 load('files/gamma_data')
 
+load('files/loss')
+
 plot(result_gamma)
 
 for(i in 1:53){
@@ -90,7 +92,7 @@ ggplot(data = NULL, aes(x=1:53)) +
   geom_line(aes(y = result_gp$summary.random$week_iid$mean + result_gp$summary.random$week_rw$mean, col = 'Total')) +
   xlab('Week') + ylab('Effect on latent field')
 
-for(i in 1:148){
+for(i in 79:89){
   linear_combinations = extract_linear_combinations(result_gamma, 
                                                     station = index_to_station(i, station_info),
                                                     station_info = station_info)
@@ -110,8 +112,10 @@ for(i in 1:148){
 
 posterior_means_df = as.data.frame(matrix(nrow = 0, ncol = 5))
 colnames(posterior_means_df) = c('mean', 'lower', 'upper', 'week', 'station')
-for(stat in get_close_stations('SN27540', station_info, locations, d_max = 5, n = Inf)$ID){
-  posterior_means_df = rbind(posterior_means_df, extract_linear_combinations(result_gamma, station = stat, station_info = station_info))
+for(stat in get_close_stations('SN28923', station_info, locations, d_max = 20, n = Inf)$ID){
+  posterior_means_df = rbind(posterior_means_df,
+                             cbind(extract_linear_combinations(result_gamma, station = stat, station_info = station_info),
+                                   station = rep(stat, 53), week = 1:53)                             )
 }
 ggplot(data = posterior_means_df, aes(x=week)) +
   geom_ribbon(aes(min = lower, max = upper, fill = station), alpha = 0.3) +
@@ -119,7 +123,7 @@ ggplot(data = posterior_means_df, aes(x=week)) +
   xlab('Week') + ylab('Posterior effect') +
   ggtitle('Comparison of close stations')
 
-for(i in 1:157){
+  for(i in 1:157){
 print(ggplot(data = NULL) +
   geom_line(aes(x=1:53,y=exp(result_gamma$summary.random$index$mean[(0:52)*157+i]+result_gamma$summary.random$week_iid$mean)), col = 'blue') +
   geom_point(aes(x=gamma_data[gamma_data$index==i,]$week_rw, y = gamma_data[gamma_data$index==i,]$prcp)) +
@@ -236,13 +240,12 @@ ggsave(filename = paste(c('fig/old_vs_new_', station, '.png'), collapse = ''),
        width = 10, height = 10)
 
 
-obs_quants = sapply(1:53, function(i) mean(data$SN18700[!is.na(data$SN18700) & data$SN18700>0 & week(data$time) == i]))
-ggplot(data = NULL, aes(x = 1:53)) +
-  geom_line(aes(y = exp(extract_linear_combinations(result_gamma, station = 'SN18700', station_info = station_info)[['mean']]), col = 'Estimated')) +
-  geom_line(aes(y = obs_quants, col = 'Observed'))
 
-
-
+loss_plot = ggplot(data = NULL, aes(x = p_vec, y = loss)) +
+  geom_line(col = 'blue') +
+  xlab('Threshold probability') + 
+  ylab('Total loss')
+ggsave(filename = 'fig/loss_plot.png', plot = loss_plot, width = 700*0.0139, height = 400*0.0139)
 
 
 

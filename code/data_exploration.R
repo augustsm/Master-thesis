@@ -77,9 +77,23 @@ stations_to_plot = colnames(data)[-1][rep(c(T, rep(F, 4)), 30)]
 data_plot = data %>% gather(station, prcp, -time) %>%
   filter(station %in% stations_to_plot) %>%
   ggplot(aes(x = time, y = prcp)) + geom_line() + facet_wrap(station~., ncol = 5) +
-  xlab('Time (year)') + ylab('Precipitation (mm/h)')
+  xlab('Time (year)') + ylab('Precipitation (mm/h)') +
+  theme(axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20))
 
 ggsave(data_plot, filename = 'fig/data_plot.png', width = 8.27, height = 11.69)
+
+stations_to_plot = stations_to_plot[c(T,F)]
+small_scale_plot = data %>% gather(station, prcp, -time) %>%
+  filter(station %in% stations_to_plot) %>%
+  filter(time > ymd(20190831), time < ymd(20190904)) %>%
+  ggplot(aes(x = time, y = prcp, col = station)) +
+  geom_line() + xlab('Time') + ylab('Precipitation (mm/h)') +
+  theme(axis.text.x = element_text(size = 15),
+        axis.text.y = element_text(size = 15),  
+        axis.title.x = element_text(size = 20),
+        axis.title.y = element_text(size = 20))
+ggsave(small_scale_plot, filename = 'fig/small_scale.png', width = 700*0.0139, height = 400*0.0139)
 
 statistics_df = data.frame('ID' = colnames(data[,-1]), 'mean' = colMeans(data[,-1], na.rm = T))
 quant_df = data %>% gather(ID, val, -time) %>% group_by(ID) %>% summarise(`0.99quant` = quantile(val, 0.99, na.rm=T))
